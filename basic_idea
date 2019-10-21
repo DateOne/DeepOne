@@ -1,0 +1,14 @@
+Basic idea of this paper is about measuring the relationship between different little distributions.
+Here are two ideas to measure this relationship, the first one is just like the method is gradient 
+episodic memory. And another one is about object detection to predict higher-dimensional distribution.
+
+The first problem is why GEM could work? This is a very interesting problem. Should we consider that 
+problem by seeing different kinds of layers or just seeing the model as a whole.
+
+Let's assume that it could work, then we can define the relationship between two meta-tasks or among 
+multiple meta-tasks by calculating their gradient relevance (or other similar methods).
+An very simple and very stupid idea is draw a graph with nodes labeled with samples descriptions and 
+edges initialized with relationships. Then we can try to predict the nerual network of unseen or 
+partly unseen distributions. Yet this method is dumb and might make no sense.
+
+YES, IT COULD WORK!!!
