@@ -12,3 +12,47 @@ edges initialized with relationships. Then we can try to predict the nerual netw
 partly unseen distributions. Yet this method is dumb and might make no sense.
 
 YES, IT COULD WORK!!!
+
+OK, here comes the basic framework of our algorithm:
+
+_____________________________________________________________________________________________________________________________________________________________________________
+|for a single epoch:                                                                                                                                                        |
+|	model.train()                                                                                                                                                       |
+|	draw some batches                                                                                                                                                   |
+|	calculate the description of these batches                                                                                                                          |
+|	calculate the relationship between these batches                                                                                                                    |
+|	train a neural network that trained on all batches                                                                                                                  |
+|	train a neural network that maps batches descriptions and batches relationships to masks which can be applied to the last neural network and get better performance |
+|	model.eval()                                                                                                                                                        |
+|	draw some batches                                                                                                                                                   |
+|	calculate the description of these batches                                                                                                                          |
+|	calculate the relationship of one batch with batches in training set                                                                                                |
+|	based on the description and relationship, get the particular mask for the batch                                                                                    |
+|	use that mask to get the neural network and get better performance                                                                                                  |
+|___________________________________________________________________________________________________________________________________________________________________________|
+
+1. draw some batches: that's easy, just write a batch sampler, but we should be very careful about the hyper-parameters
+2. calculate the descriptin of batches: the first problem is, do we really need those descriptions. ok, it seems that it might not be helpful.
+3. calculate the relationship between these batches: ok, let alone whether mathematical theory of GEM, how will you implement this method? Ok,
+out of the most basic thought, there are three options, firstly, you could calculate the gradient angle between batches over a randomly 
+initialized neural network (there might be so many problems though), secondly, you could calculate the gradient angle between batches over a
+fully trained neural network say a neural network trained with all batches, thirdly, you could achieve the relationships along with the 
+training, and maybe combine it with some life-long learning methods or tricks. We don't know whether the first option will work, but second 
+option is more likely to work that's for certain. Yet if option 2 failed, you might think about if it is about the batches that are used to
+get the gradients are already seen by the neural network. However, in my first thought, it should be ok. If we want our model to be elegant, 
+we probably want to use option 3, although it obviously could incur some problems but some tricks like regularization might be helpful to 
+solve them.
+4. train a neural network that trained on all batches: The most common way to implement this step is just like all other models. However at 
+this step, things could be a little more advanced or elegant, just like training this neural network while calculate the relationship between
+batches at the same time (obviously this method will take more understanding in GEM theory).
+5. train a neural network that maps batches descriptions and batchs relationships to masks which can be applied to the last neural network and
+get better performance: this step might be the most important step of all. Firstly, we don't know if we want to masking the neural network to 
+represent the batch distribution. Although the diversity of distributions could be expressed in masking while the performance of this masked 
+neural network will be limited (from a weird sense of mine). Of course there are so many other methods that could conduct similar goals, for
+example, the gradients achieved can not only be used in labeling relationships, but also can be used for training. And there are all kinds of 
+other methods to do this, maybe we can get some ideas from the later reading of papers or learning of courses. Besides that, if we want to use
+that masking trick, what is our detailed operation? How can we get this kinda masks? That is a problem!
+
+Ok, let's hold on for a second and look at our options on steps 5. The easiest way of step 5 is a neural network trained on relationships and 
+when see a new relationship that can output a set of parameters, actually, it's a mapping from relationships and models (or parameters). You
+know what I am thinking? That's right! NAS, you are on!
