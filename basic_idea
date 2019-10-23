@@ -56,3 +56,38 @@ that masking trick, what is our detailed operation? How can we get this kinda ma
 Ok, let's hold on for a second and look at our options on steps 5. The easiest way of step 5 is a neural network trained on relationships and 
 when see a new relationship that can output a set of parameters, actually, it's a mapping from relationships and models (or parameters). You
 know what I am thinking? That's right! NAS, you are on!
+Consequently, at this part, we have two methods at step 5, one is using masking, another one being NAS.
+
+So, let's just write two models with psedu-code.
+
+===the first one with masking (easiest)===
+___________________________________________________________________
+|for epochs:                                                      |
+|	#model.train()                                            |
+|	get some batches (the detailed sample need more attention)|
+|	train a neural network                                    |
+|	calculate the relationships                               |
+|	use these relationships to search for a mask              |
+|	#model.eval()                                             |
+|	get some batches                                          |
+|	calculate the relationships                               |
+|	get a mask                                                |
+|	get a prediction                                          |
+|_________________________________________________________________|
+
+===the second one with NAS (easiest)===
+___________________________________________________________________
+|for epochs:                                                      |
+|	#model.train()                                            |
+|	get some batches                                          |
+|	train a neural network                                    |
+|	calculate the relationships                               |
+|	use these neural networks to train a searcher for networks|
+|	#model.eval()                                             |
+|	get some batches                                          |
+|	calculate the relationships                               |
+|	search for a neural network                               |
+|	get a prediction	                                  |
+|_________________________________________________________________|
+
+!!!methods exist other than masking and NAS, and this process could be a little harder
