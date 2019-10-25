@@ -144,4 +144,14 @@ some theoretical problems:
 the theory of GEM? (need to read some papers)
 estimating the testing queries with training queries (where that should take some serious consideration)
 how to validate this model? (it shouldn't be a problem)
+will queries and support set fit?
+the detailed process
 is it possible to make this process more elegant and smooth? (like tree, rnn or something? yeah, it should be possible, but complete this one and read more papers later)
+
+
+1. the theory of GEM: later.
+2. estimating the testing queries with training queries: that problem, besides, similar little distributions shall be no problem. dissimilar little distributions work
+just like out-of-distribution detection. it should be ok.
+3. it shall be fine, just add a validation dataset.
+4. ok, this is a really serious problem, here are two ways, either you find the nearest neighbour and pair them or use gan or other data argumentation method to make some 
+queries.
