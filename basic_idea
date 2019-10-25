@@ -91,3 +91,57 @@ ___________________________________________________________________
 |_________________________________________________________________|
 
 !!!methods exist other than masking and NAS, and this process could be a little harder
+
+ok, there are some problems, but that might be ok, cause we can still use NAS but instead of using traditional NAS we search 
+the parameters. ok, that is learn to learn right? 
+
+inferring from the seen domain to unseen domain might actually be an impossible mission (without any touching with unseen 
+domain), yet the touching of unseen domain is just overfitting (i prefer the work more fitting) to the particular domain 
+(it's not because the neural network capacity is too small but it's impossible to generalize to the unseen domain). In 
+order to more-fitting to this unseen domain, we need prior information about this domain (obviously only from support set),
+to alter tha parameters of neural network. We have get that the prior information is the gradients in GEM but what we don't
+know is how to use those prior information to get new set of parameters.
+
+directly? graph
+masking?
+methods like nas (reinforcement learning)?
+generating? that is crazy!
+rnn, update parameters one by one?
+attention?
+adversarial attack?
+save some gradients, delete them and use them! ewc?
+
+so the algorithm will be like:
+
+for epochs:
+	get some batches
+	for a batch:
+		calculate the gradients for all batches (train batches and test batches)
+		train with the batch
+		return some gradients, get some gradients
+		probably useful!
+
+The final problem:
+normally, this is a dead end, yet methods still exist for us to explore. Don't give up!
+The new idea is to use training queries to 'estimate' the test queries (there are some complex logits there needing more
+thinking). so the logic will be:
+
+===========================================================================================================================================================
+for epochs:
+	get some training batches
+	get some test batches
+	for training batches:
+		calculate the gradients of all training batches (100 training batches with 100 gradients)
+		calculate the gradients of all testing batches with training queries (100 training batches, 20 testing batches with 100 * 20 gradients)
+		calculate relationships and store them to the memory (or maybe just store some important gradients)
+		update neural network with the batch
+for testing batches:
+	return some gradients (or even buy more some gradients) according to this gradients memory, so we can get a new-neural network
+	test with this neural network
+===========================================================================================================================================================
+
+some theoretical problems:
+the theory of GEM? (need to read some papers)
+estimating the testing queries with training queries (where that should take some serious consideration)
+how to validate this model? (it shouldn't be a problem)
+is it possible to make this process more elegant and smooth? (like tree, rnn or something? yeah, it should be possible, but complete this one and read more papers later)
