@@ -1,0 +1,159 @@
+Basic idea of this paper is about measuring the relationship between different little distributions.
+Here are two ideas to measure this relationship, the first one is just like the method is gradient 
+episodic memory. And another one is about object detection to predict higher-dimensional distribution.
+
+The first problem is why GEM could work? This is a very interesting problem. Should we consider that 
+problem by seeing different kinds of layers or just seeing the model as a whole.
+
+Let's assume that it could work, then we can define the relationship between two meta-tasks or among 
+multiple meta-tasks by calculating their gradient relevance (or other similar methods).
+An very simple and very stupid idea is draw a graph with nodes labeled with samples descriptions and 
+edges initialized with relationships. Then we can try to predict the nerual network of unseen or 
+partly unseen distributions. Yet this method is dumb and might make no sense.
+
+YES, IT COULD WORK!!!
+
+OK, here comes the basic framework of our algorithm:
+
+_____________________________________________________________________________________________________________________________________________________________________________
+|for a single epoch:                                                                                                                                                        |
+|	model.train()                                                                                                                                                       |
+|	draw some batches                                                                                                                                                   |
+|	calculate the description of these batches                                                                                                                          |
+|	calculate the relationship between these batches                                                                                                                    |
+|	train a neural network that trained on all batches                                                                                                                  |
+|	train a neural network that maps batches descriptions and batches relationships to masks which can be applied to the last neural network and get better performance |
+|	model.eval()                                                                                                                                                        |
+|	draw some batches                                                                                                                                                   |
+|	calculate the description of these batches                                                                                                                          |
+|	calculate the relationship of one batch with batches in training set                                                                                                |
+|	based on the description and relationship, get the particular mask for the batch                                                                                    |
+|	use that mask to get the neural network and get better performance                                                                                                  |
+|___________________________________________________________________________________________________________________________________________________________________________|
+
+1. draw some batches: that's easy, just write a batch sampler, but we should be very careful about the hyper-parameters
+2. calculate the descriptin of batches: the first problem is, do we really need those descriptions. ok, it seems that it might not be helpful.
+3. calculate the relationship between these batches: ok, let alone whether mathematical theory of GEM, how will you implement this method? Ok,
+out of the most basic thought, there are three options, firstly, you could calculate the gradient angle between batches over a randomly 
+initialized neural network (there might be so many problems though), secondly, you could calculate the gradient angle between batches over a
+fully trained neural network say a neural network trained with all batches, thirdly, you could achieve the relationships along with the 
+training, and maybe combine it with some life-long learning methods or tricks. We don't know whether the first option will work, but second 
+option is more likely to work that's for certain. Yet if option 2 failed, you might think about if it is about the batches that are used to
+get the gradients are already seen by the neural network. However, in my first thought, it should be ok. If we want our model to be elegant, 
+we probably want to use option 3, although it obviously could incur some problems but some tricks like regularization might be helpful to 
+solve them.
+4. train a neural network that trained on all batches: The most common way to implement this step is just like all other models. However at 
+this step, things could be a little more advanced or elegant, just like training this neural network while calculate the relationship between
+batches at the same time (obviously this method will take more understanding in GEM theory).
+5. train a neural network that maps batches descriptions and batchs relationships to masks which can be applied to the last neural network and
+get better performance: this step might be the most important step of all. Firstly, we don't know if we want to masking the neural network to 
+represent the batch distribution. Although the diversity of distributions could be expressed in masking while the performance of this masked 
+neural network will be limited (from a weird sense of mine). Of course there are so many other methods that could conduct similar goals, for
+example, the gradients achieved can not only be used in labeling relationships, but also can be used for training. And there are all kinds of 
+other methods to do this, maybe we can get some ideas from the later reading of papers or learning of courses. Besides that, if we want to use
+that masking trick, what is our detailed operation? How can we get this kinda masks? That is a problem!
+
+Ok, let's hold on for a second and look at our options on steps 5. The easiest way of step 5 is a neural network trained on relationships and 
+when see a new relationship that can output a set of parameters, actually, it's a mapping from relationships and models (or parameters). You
+know what I am thinking? That's right! NAS, you are on!
+Consequently, at this part, we have two methods at step 5, one is using masking, another one being NAS.
+
+So, let's just write two models with psedu-code.
+
+===the first one with masking (easiest)===
+___________________________________________________________________
+|for epochs:                                                      |
+|	#model.train()                                            |
+|	get some batches (the detailed sample need more attention)|
+|	train a neural network                                    |
+|	calculate the relationships                               |
+|	use these relationships to search for a mask              |
+|	#model.eval()                                             |
+|	get some batches                                          |
+|	calculate the relationships                               |
+|	get a mask                                                |
+|	get a prediction                                          |
+|_________________________________________________________________|
+
+===the second one with NAS (easiest)===
+___________________________________________________________________
+|for epochs:                                                      |
+|	#model.train()                                            |
+|	get some batches                                          |
+|	train a neural network                                    |
+|	calculate the relationships                               |
+|	use these neural networks to train a searcher for networks|
+|	#model.eval()                                             |
+|	get some batches                                          |
+|	calculate the relationships                               |
+|	search for a neural network                               |
+|	get a prediction	                                  |
+|_________________________________________________________________|
+
+!!!methods exist other than masking and NAS, and this process could be a little harder
+
+ok, there are some problems, but that might be ok, cause we can still use NAS but instead of using traditional NAS we search 
+the parameters. ok, that is learn to learn right? 
+
+inferring from the seen domain to unseen domain might actually be an impossible mission (without any touching with unseen 
+domain), yet the touching of unseen domain is just overfitting (i prefer the work more fitting) to the particular domain 
+(it's not because the neural network capacity is too small but it's impossible to generalize to the unseen domain). In 
+order to more-fitting to this unseen domain, we need prior information about this domain (obviously only from support set),
+to alter tha parameters of neural network. We have get that the prior information is the gradients in GEM but what we don't
+know is how to use those prior information to get new set of parameters.
+
+directly? graph
+masking?
+methods like nas (reinforcement learning)?
+generating? that is crazy!
+rnn, update parameters one by one?
+attention?
+adversarial attack?
+save some gradients, delete them and use them! ewc?
+
+so the algorithm will be like:
+
+for epochs:
+	get some batches
+	for a batch:
+		calculate the gradients for all batches (train batches and test batches)
+		train with the batch
+		return some gradients, get some gradients
+		probably useful!
+
+The final problem:
+normally, this is a dead end, yet methods still exist for us to explore. Don't give up!
+The new idea is to use training queries to 'estimate' the test queries (there are some complex logits there needing more
+thinking). so the logic will be:
+
+===========================================================================================================================================================
+for epochs:
+	get some training batches
+	get some test batches
+	for training batches:
+		calculate the gradients of all training batches (100 training batches with 100 gradients)
+		calculate the gradients of all testing batches with training queries (100 training batches, 20 testing batches with 100 * 20 gradients)
+		calculate relationships and store them to the memory (or maybe just store some important gradients)
+		update neural network with the batch
+for testing batches:
+	return some gradients (or even buy more some gradients) according to this gradients memory, so we can get a new-neural network
+	test with this neural network
+===========================================================================================================================================================
+
+some theoretical problems:
+the theory of GEM? (need to read some papers)
+estimating the testing queries with training queries (where that should take some serious consideration)
+how to validate this model? (it shouldn't be a problem)
+will queries and support set fit?
+the detailed process
+is it possible to make this process more elegant and smooth? (like tree, rnn or something? yeah, it should be possible, but complete this one and read more papers later)
+
+
+1. the theory of GEM: later.
+2. estimating the testing queries with training queries: that problem, besides, similar little distributions shall be no problem. dissimilar little distributions work
+just like out-of-distribution detection. it should be ok.
+3. it shall be fine, just add a validation dataset.
+4. ok, this is a really serious problem, here are two ways, either you find the nearest neighbour and pair them or use gan or other data argumentation method to make some 
+queries.
+
+add something to generate the queries in testing dataset or force them to form the same distribution. let's say we can generate these samples, it shouldn't be hard.
