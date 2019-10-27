@@ -1,0 +1,28 @@
+__main__
+for epochs:
+	get tr_batches
+	get val_batches
+	get t_batches
+	for tr_batches:
+		get the tr_batch gradients
+		train with the tr_batch
+		for val_batches:
+			complement the val_batch
+			calculate the val_batch gradient
+			calculate the value of the tr_batch to this val_batch
+			add (or not) the tr_batch gradient to val_memory
+		for t_batches:
+			complement the t_batch
+			calculate the t_batch gradient
+			calculate the value of the tr_batch to this t_batch
+			add (or not) the tr_batch gradient to t_memory
+	for val_batches:
+		change the model by val_memory
+		validate with the model and the val_batch
+for t_batches:
+	change the model by t_memory
+	test with the model and the t_batch
+
+
+advanced thoughts:
+you could also alter models in training, so that (at least) your log of training losses and accs means something.
