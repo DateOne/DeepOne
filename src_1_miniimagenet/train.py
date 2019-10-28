@@ -23,40 +23,10 @@ from utils import euclidean_distance, complement, Memory, get_model
 from dataset_and_sampler import MiniImagenet, MiniImagenetBatchSampler
 from model import ProtoNet
 
-#dataloader
-def init_dataset(mode):
-	return MiniImagenet(mode)
-
-def init_dataloader(mode):
-	dataset = MiniImagenet(mode)
-	if mode == 'train':
-		num_batches = args.training_batch
-		num_classes = args.training_way
-		num_samples = args.shot + args.query
-	elif mode == 'val':
-		num_batches = args.validation_batch
-		num_classes = args.way
-		num_samples = args.shot + args.query
-	else mode == 'test':
-		num_batches = args.testing_batch
-		num_classes = args.way
-		num_samples = args.shot + args.testing_query
-	batch_sampler = MiniImagenetBatchSampler(
-		dataset.labels,
-		num_batches=num_batches,
-		num_classes=num_classes,
-		num_samples=num_samples)
-	dataloader = DataLoader(
-		dataset=dataset,
-		batch_sampler=batch_sampler,
-		num_workers=8,
-		pin_memory=True)
-	print('*** {} set ready ***'.format(mode))
-	return dataloader
-
 #main
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser('DeepOne training arguments')
+
+	parser = argparse.ArgumentParser('DeepOne training arguments')   #these parameters need some big change!!!
 	'''
 	arguments:
 		number of epochs
@@ -96,7 +66,7 @@ if __name__ == '__main__':
 		help='learning rate gamma',
 		default=0.5)
 	parser.add_argument(
-		'lr_s', '--learning_rate_step', type=int,
+		'-lr_s', '--learning_rate_step', type=int,
 		help='learning rate step size',
 		default=20)
 	parser.add_argument(
@@ -125,7 +95,57 @@ if __name__ == '__main__':
 		'-sv_r', '--save_root',
 		help='save root information (not the dataset root)',
 		default='save')
-	args = parser.prase_args()
+	
+	args = parser.parse_args()
+
+	pprint(vars(args))
+
+	#dataloader
+	def init_dataset(mode):
+		'''
+		description: initiate miniimagenet dataset
+		'''
+		return MiniImagenet(mode)
+
+	def init_dataloader(mode):
+		'''
+		description: initiate dataloaders
+		'''
+		dataset = init_dataset(mode)
+
+		if mode == 'train':
+			num_batches = args.training_batch
+			num_classes = args.training_way
+			num_samples = args.shot + args.query
+
+		elif mode == 'val':
+			num_batches = args.validation_batch
+			num_classes = args.way
+			num_samples = args.shot + args.query
+
+		else:
+			num_batches = args.testing_batch
+			num_classes = args.way
+			num_samples = args.shot + args.testing_query
+
+		batch_sampler = MiniImagenetBatchSampler(
+			dataset.labels,
+			num_batches=num_batches,
+			num_classes=num_classes,
+			num_samples=num_samples)
+
+		dataloader = DataLoader(
+			dataset=dataset,
+			batch_sampler=batch_sampler,
+			num_workers=8,
+			pin_memory=True)
+
+		print('{} set ready'.format(mode))
+		
+		return dataloader
+
+	def save_model(name, model):
+		torch.save(model.state_dict(), os.path.join(args.save_root, name + '.pth'))
 
 	set_device(args.device)
 	ensure_path(args.save_root)
@@ -144,10 +164,7 @@ if __name__ == '__main__':
 		gamma=args.learning_rate_gamma,
 		step_size = args.learning_rate_step)
 
-	def save_model(name):
-		torch.save(model.state_dict(), os.path.join(args.save_root, name + '.pth'))
-
-	tr_log = {}
+	tr_log = {}   #training log
 	tr_log['args'] = vars(args)
 	tr_log['training_loss'] = []
 	tr_log['training_acc'] = []
@@ -157,7 +174,7 @@ if __name__ == '__main__':
 
 	since = time.time()
 
-	t_memory = Memory()   #need some thoughts
+	t_memory = [Memory() for i in range(args.epoch)]   #testing memory to store gradients
 
 	for epoch in range(args.epoch):
 		lr.scheduler.step()
@@ -167,23 +184,24 @@ if __name__ == '__main__':
 		training_loss = Avenger()
 		training_acc = Avenger()
 
-		val_memory = Memory()   #need some thoughts
+		val_memory = Memory()   #validation memory to store gradients
 
-		for i, tr_batch in enumerate(training_dataloader, 1):
-			data, _ = [_.cuda for _ in batch]
+		for i, tr_batch in enumerate(training_dataloader):   #i starts from 0
+			data, _ = [_.cuda for _ in tr_batch]   #data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
 			
 			p = args.shot * args.training_way
 			data_shot, data_query = data[:p], data[p:]
 
-			protos = model(data_shot).reshape(args.shot, args.training_way, -1).mean(dim=0)
+			protos = model(data_shot).reshape(args.shot, args.training_way, -1).mean(dim=0)   #think of that as a length-training_way Tensor with each element being the proto of its class
 			
 			label = torch.arange(arga.training_way).repeat(args.query).type(torch.cuda.LongTensor)
-			logits = euclidean_distance(model(data_query), protos)
-			loss = F.cross_entropy(logits, label)
+			logits = euclidean_distance(model(data_query), protos)   #two-dimensional Tensor (number of queries times training way) with each element being distance, the arangement of queries see data
+			
+			loss = F.cross_entropy(logits, label)   #finally that makes sense. thanks god!
 			pred = torch.argmax(logits, dim=1)
-			acc = (pred = label).type(torch.cuda.FloatTensor).mean().item()
+			acc = (pred == label).type(torch.cuda.FloatTensor).mean().item()
 
-			print('=== epoch: {}, train: {}/{}, loss={:.4f} acc={:.4f} ==='.format(epoch, i, len(training_dataloader), loss.item(), acc))
+			print('=== epoch: {}, train: {}/{}, loss={:.4f} acc={:.4f} ==='.format(epoch, i + 1, len(training_dataloader), loss.item(), acc))
 
 			training_loss.add(loss.item())
 			training_acc.add(acc)
@@ -192,14 +210,13 @@ if __name__ == '__main__':
 			loss.backward()
 
 			tr_params = list(model.parameters())
-			tr_grads = [tr_params[x].grad for x in len(tr_params)]
+			tr_grads = [tr_params[x].grad for x in len(tr_params)]   #are you sure this is the best way to do this?
 
-			optimizer.step()
+			#get the gradients for validation and testing
+			for j, val_batch in enumerate(validation_dataloader):
+				val_batch = complement(val_batch, training_dataset, model, args)   #I will do that later!!!!!!!
 
-			for j, val_batch in enumerate(validation_dataloader, 1):
-				val_batch = complement(val_batch, training_dataset, model, args)
-
-				data, _ = [_.cuda() for _ in batch]
+				data, _ = [_.cuda() for _ in val_batch]
 				p = args.shot + args.way
 				data_shot, data_query = data[:p], data[p:]
 
@@ -213,7 +230,7 @@ if __name__ == '__main__':
 				val_params = list(model.parameters())
 				val_grads = [params[x].grad for x in len(params)]
 
-				val_memory.append(val_grads)
+				val_memory.append(j, val_grads, tr_grads)
 
 			for j, t_batch in enumerate(testing_dataloader, 1):
 				t_batch = complement(t_batch, training_dataset, model, args)
@@ -231,7 +248,9 @@ if __name__ == '__main__':
 				t_params = list(model.parameters())
 				t_grads = [params[x].grad for x in len(params)]
 
-				t_memory.append(t_grads)
+				t_memory[epoch].append(j, t_grads, tr_grads)
+
+			optimizer.step()
 
 		training_loss = training_loss.item()
 		training_acc = training_acc.item()   #maybe the training process could be changed, you know for training acc we can even get a new model
