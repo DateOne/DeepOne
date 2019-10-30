@@ -166,13 +166,10 @@ def get_model(model, memory, batch_indicator):
 
 	return model
 
+'''
 #memory
 class Memory():
-	'''
-	methods: __init__, append
-	description: with batch_indicator indicating the validation or testing batch,
-	append the gradients to to_bug memory and to_return memory by relationships
-	'''
+
 	def __init__(self):
 		self.batch_indicator = -1
 		self.to_buy = []
@@ -191,3 +188,33 @@ class Memory():
 		if len(self.to_return[self.batch_indicator]) < 100 and relation(grad, grad_tr) < min([i[1] for i in self.to_return[self.batch_indicator]]):
 			self.to_return[self.batch_indicator].pop(np.argmax(np.array([i[1] for i in self.to_return[self.batch_indicator]])))
 			self.to_return[self.batch_indicator].append([grad, relation(grad, grad_tr)])
+'''
+
+#memory
+class Memory():
+	'''
+	methods: __init__, append
+	description: with batch_indicator indicating the validation or testing batch,
+	append the gradients to to_bug memory and to_return memory by relationships
+	'''
+	def __init__(self):
+		self.to_buy = {}
+		self.to_return = {}
+
+	def append(self, batch_indicator, grad, grad_tr):
+		self.to_buy[str(batch_indicator)] = []
+		self.to_return[str(batch_indicator)] = []
+
+		rel = relation(grad, grad_tr)
+
+		if len(self.to_buy[str(batch_indicator)]) < 100:
+			self.to_buy[str(batch_indicator)].append([grad, rel])
+		else if rel > max([i[1] for i in self.to_buy[str(batch_indicator)]]):
+			self.to_buy[str(batch_indicator)].pop(np.argmin(np.array([i[1] for i in self.to_buy[str(batch_indicator)]])))
+			self.to_buy[str(batch_indicator)].append([grad, rel])
+
+		if len(self.to_return[str(batch_indicator)]) < 100:
+			self.to_return[str(batch_indicator)].append([grad, rel])
+		else if rel < min([i[1] for i in self.to_return[str(batch_indicator)]]):
+			self.to_return[str(batch_indicator)].pop(np.argmax(np.array([i[1] for i in self.to_return[str(batch_indicator)]])))
+			self.to_return[str(batch_indicator)].append([grad, rel])
