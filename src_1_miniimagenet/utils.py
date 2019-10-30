@@ -180,8 +180,8 @@ class Memory():
 
 	def append(self, batch_indicator, grad, grad_tr):   #this function could be simplified
 		if self.batch_indicator != batch_indicator:
-			self.to_buy.append([])
-			self.to_return.append([])
+			self.to_buy.append([[0, 0]])
+			self.to_return.append([0, 100])
 			self.batch_indicator = batch_indicator
 
 		if len(self.to_buy[self.batch_indicator]) < 100 and relation(grad, grad_tr) > max([i[1] for i in self.to_buy[self.batch_indicator]]):   #100 is just a hyper-parameter that could be changed later
