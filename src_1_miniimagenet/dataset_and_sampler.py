@@ -123,8 +123,8 @@ class MiniImagenetWholeBatchSampler():
 
 	def __iter__(self):
 		for b in range(self.num_batches):
-			batch = torch.stack(self.class_class).t().reshape(-1)
-			batch = batch[b * 600, (b + 1) * 600]
+			the_class = self.class_class[b]
+			batch = the_class[:20]   #200 is a hyper-parameter
 			yield batch
 
 	def __len__(self):

@@ -88,8 +88,8 @@ def complement(batch_data, tr_dataset, model, opt, mode):
 	tr_protos = list()
 
 	for i, tr_batch in enumerate(training_dataloader):
-		tr_data, _ = [_.cuda() for _ in whole_tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
-		tr_proto = model(tr_data).reshape(training_whole_sampler.num_samples, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
+		tr_data, _ = [_.cuda() for _ in tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+		tr_proto = model(tr_data).reshape(20, -1).mean(dim=0).cpu()   #one-dimensional list of length of way with each element being the class proto
 		tr_protos.append(tr_proto)
 
 	tr_protos = torch.Tensor(tr_protos)

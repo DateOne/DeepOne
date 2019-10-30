@@ -25,6 +25,7 @@ from model import ProtoNet
 
 #main
 if __name__ == '__main__':
+	torch.cuda.empty_cache()
 
 	parser = argparse.ArgumentParser('DeepOne training arguments')   #these parameters need some big change!!!
 	'''
@@ -157,7 +158,7 @@ if __name__ == '__main__':
 	ensure_path(args.save_root)
 
 	training_dataset = init_dataset('train')
-
+	#print('classes: {}, samples: {}, samples per class: {}'.format(len(training_dataset.label_names), len(training_dataset), len(training_dataset)/len(training_dataset.label_names)))
 	training_dataloader = init_dataloader('train')
 	validation_dataloader = init_dataloader('val')
 	testing_dataloader = init_dataloader('test')
