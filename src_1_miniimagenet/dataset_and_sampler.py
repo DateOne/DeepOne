@@ -124,7 +124,7 @@ class MiniImagenetWholeBatchSampler():
 	def __iter__(self):
 		for b in range(self.num_batches):
 			the_class = self.class_class[b]
-			batch = the_class[:20]   #200 is a hyper-parameter
+			batch = the_class[:12]   #200 is a hyper-parameter
 			yield batch
 
 	def __len__(self):
@@ -142,6 +142,8 @@ class FakeBatchSampler():
 		self.num_samples = num_samples
 
 		labels = np.array(labels)
+		
+		self.class_class = []
 
 		for i in range(max(labels) + 1):
 			class_i = np.argwhere(labels == i).reshape(-1)
@@ -152,14 +154,22 @@ class FakeBatchSampler():
 		for b in range(1):
 			batch = []
 
-			classes = self.class_class[self.class_idcs]
-
-			for c in classes:
-				samples_in_class = torch.randperm(len(c))[:self.num_samples]
-				batch.append(c[samples_in_class])
+			for c in self.class_idcs:
+				the_class = self.class_class[c]
+				samples_in_class = torch.randperm(len(the_class))[:self.num_samples]
+				batch.append(the_class[samples_in_class])
 			batch = torch.stack(batch).t().reshape(-1)
 
 			yield batch
+
+			#classes = self.class_class[self.class_idcs]
+
+			#for c in classes:
+				#samples_in_class = torch.randperm(len(c))[:self.num_samples]
+				#batch.append(c[samples_in_class])
+			#batch = torch.stack(batch).t().reshape(-1)
+
+			#yield batch
 
 	def __len__(self):
 		return 1

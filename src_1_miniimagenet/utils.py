@@ -13,6 +13,7 @@ import pprint
 
 import numpy as np
 
+import torch
 from torch.utils.data import DataLoader
 
 from dataset_and_sampler import MiniImagenetBatchSampler, MiniImagenetWholeBatchSampler, FakeBatchSampler
@@ -76,7 +77,7 @@ def complement(batch_data, tr_dataset, model, opt, mode):
 		num_queries = opt.testing_query
 
 	batch_protos = model(batch_data).reshape(opt.shot + num_queries, opt.way, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
-
+	#print(batch_protos.shape)
 	training_dataset = tr_dataset
 	training_whole_sampler = MiniImagenetWholeBatchSampler(training_dataset.labels, 64)   #64 is the number of classes in training set
 	training_dataloader = DataLoader(
@@ -89,16 +90,23 @@ def complement(batch_data, tr_dataset, model, opt, mode):
 
 	for i, tr_batch in enumerate(training_dataloader):
 		tr_data, _ = [_.cuda() for _ in tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
-		tr_proto = model(tr_data).reshape(20, -1).mean(dim=0).cpu()   #one-dimensional list of length of way with each element being the class proto
+		tr_proto = model(tr_data).reshape(12, 1, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
 		tr_protos.append(tr_proto)
-
-	tr_protos = torch.Tensor(tr_protos)
+	#print(tr_protos)
+	tr_protos = torch.cat(tr_protos, 0)
+	#print(tr_protos.shape)
 
 	batch_protos = batch_protos.unsqueeze(1).expand(opt.way, training_whole_sampler.num_classes, -1)
 	tr_protos = tr_protos.expand(opt.way, training_whole_sampler.num_classes, -1)
 	res = ((batch_protos - tr_protos) ** 2).sum(2)
 
+	#print(res.shape)
+
 	tr_idcs = torch.argmax(res, dim=1)   #one-dimensional Tensor with each element being the index of training set class to replace the batch
+
+	#print(tr_idcs.shape)
+	
+	#print(tr_idcs)
 	training_fake_sampler = FakeBatchSampler(
 		labels=training_dataset.labels,
 		class_idcs=tr_idcs,
@@ -109,7 +117,7 @@ def complement(batch_data, tr_dataset, model, opt, mode):
 		num_workers=8,
 		pin_memory=True)
 
-	for fake_batch in training_fake_dataloader:
+	for i, fake_batch in enumerate(training_fake_dataloader):
 		fake_batch = fake_batch
 
 	return fake_batch

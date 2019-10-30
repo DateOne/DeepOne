@@ -227,7 +227,7 @@ if __name__ == '__main__':
 				val_batch = complement(val_data, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
 
 				data, _ = [_.cuda() for _ in val_batch]
-				p = args.shot + args.way
+				p = args.shot * args.way
 				data_shot, data_query = data[:p], data[p:]
 
 				protos = model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 				loss.backward()
 				
 				val_params = list(model.parameters())
-				val_grads = [params[x].grad for x in range(len(params))]   #is there better way?
+				val_grads = [val_params[x].grad for x in range(len(val_params))]   #is there better way?
 
 				val_memory.append(j, val_grads, tr_grads)
 
@@ -257,7 +257,7 @@ if __name__ == '__main__':
 				loss.backward()
 				
 				t_params = list(model.parameters())
-				t_grads = [params[x].grad for x in range(len(params))]
+				t_grads = [t_params[x].grad for x in range(len(t_params))]
 
 				t_memory[epoch].append(j, t_grads, tr_grads)
 
