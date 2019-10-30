@@ -34,10 +34,10 @@ def ensure_path(path):
 			shutil.rmtree(path)
 			os.makedirs(path)
 	else:
-		os.mkdirs(path)
+		os.makedirs(path)
 
 #averger
-def Avenger():
+class Avenger():
 	'''
 	ok, I know it's Averger which makes some calculation convenient. I'm not stupid.
 	I just think Avenger is a cooler name.
@@ -64,18 +64,17 @@ def euclidean_distance(a, b):
 	return logits
 
 #complement
-def complement(batch, tr_dataset, model, opt, mode):
+def complement(batch_data, tr_dataset, model, opt, mode):
 	'''
 	fine the most related batch in training_dataset to replace the validation or testing batch
 	pass these training classes into the model and find the protos, find the closest protos 
 	to batch protos and resample, return new batch
 	'''
-	if mode = 'val':
+	if mode == 'val':
 		num_queries =  opt.query
 	else:
 		num_queries = opt.testing_query
 
-	batch_data, _ = batch
 	batch_protos = model(batch_data).reshape(opt.shot + num_queries, opt.way, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
 
 	training_dataset = tr_dataset
@@ -86,8 +85,8 @@ def complement(batch, tr_dataset, model, opt, mode):
 		num_workers=8,
 		pin_memory=True)
 
-	for whole_tr_batch in training_dataloader:
-		whole_tr_data, _ = whole_tr_batch   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+	for i, whole_tr_batch in enumerate(training_dataloader):
+		whole_tr_data, _ = [_.cuda() for _ in whole_tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
 
 	tr_protos = model(whole_tr_data).reshape(training_whole_sampler.num_samples, training_whole_sampler.num_classes, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
 	
@@ -162,12 +161,12 @@ class Memory():
 	description: with batch_indicator indicating the validation or testing batch,
 	append the gradients to to_bug memory and to_return memory by relationships
 	'''
-	def __init__():
+	def __init__(self):
 		self.batch_indicator = -1
 		self.to_buy = []
 		self.to_return = []
 
-	def append(batch_indicator, grad, grad_tr):   #this function could be simplified
+	def append(self, batch_indicator, grad, grad_tr):   #this function could be simplified
 		if self.batch_indicator != batch_indicator:
 			self.to_buy.append([])
 			self.to_return.append([])

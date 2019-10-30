@@ -11,14 +11,14 @@ from PIL import Image
 
 import numpy as np
 import torch
-from torch.utils.data import Dateset
+from torch.utils.data import Dataset
 from torchvision import transforms
 
 #hyper-parameters
-root = '../../datasets/miniimagenet'
+root = '../datasets/miniimagenet'
 
 #dataset
-class MiniImagenet(Dateset):
+class MiniImagenet(Dataset):
 	'''
 	miniimagenet dataset
 		methods: __init__, __getitem__, __len__
@@ -56,7 +56,7 @@ class MiniImagenet(Dateset):
 
 	def __getitem__(self, idx):
 		path, label = self.data_paths[idx], self.labels[idx]
-		image = self.transform(Image.open(path)).convert('RGB')
+		image = self.transform(Image.open(path).convert('RGB'))
 		return image, label
 
 	def __len__(self):
@@ -118,10 +118,10 @@ class MiniImagenetWholeBatchSampler():
 			self.class_class.append(class_i)
 
 		self.num_classes = max(labels) + 1
-		self.num_samples = len(class_class[0])
+		self.num_samples = len(self.class_class[0])
 
 	def __iter__(self):
-		for b in 1:
+		for b in range(1):
 			batch = torch.stack(self.class_class).t().reshape(-1)
 			yield batch
 
@@ -147,7 +147,7 @@ class FakeBatchSampler():
 			self.class_class.append(class_i)
 
 	def __iter__(self):
-		for b in 1:
+		for b in range(1):
 			batch = []
 
 			classes = self.class_class[self.class_idcs]

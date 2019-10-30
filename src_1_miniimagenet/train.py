@@ -75,7 +75,8 @@ if __name__ == '__main__':
 		default=30)
 	parser.add_argument(
 		'-w', '--way', type=int,
-		help='number of ways for meta-tasks')
+		help='number of ways for meta-tasks',
+		default=5)
 	parser.add_argument(
 		'-s', '--shot', type=int,
 		help='number of shots for meta-tasks',
@@ -86,7 +87,8 @@ if __name__ == '__main__':
 		default=15)
 	parser.add_argument(
 		'-t_q', '--testing_query', type=int,
-		help='number of query samples for meta-tasks in testing')
+		help='number of query samples for meta-tasks in testing',
+		default=30)
 	parser.add_argument(
 		'-d', '--device',
 		help='device information',
@@ -183,7 +185,7 @@ if __name__ == '__main__':
 	best_epoch = 0
 
 	for epoch in range(args.epoch):
-		lr.scheduler.step()
+		lr_scheduler.step()
 
 		model.train()
 
@@ -193,14 +195,14 @@ if __name__ == '__main__':
 		val_memory = Memory()   #validation memory to store gradients
 
 		for i, tr_batch in enumerate(training_dataloader):   #i starts from 0
-			data, _ = [_.cuda for _ in tr_batch]   #data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+			data, _ = [_.cuda() for _ in tr_batch]   #data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
 			
 			p = args.shot * args.training_way
 			data_shot, data_query = data[:p], data[p:]
 
 			protos = model(data_shot).reshape(args.shot, args.training_way, -1).mean(dim=0)   #think of that as a length-training_way Tensor with each element being the proto of its class
 			
-			label = torch.arange(arga.training_way).repeat(args.query).type(torch.cuda.LongTensor)
+			label = torch.arange(args.training_way).repeat(args.query).type(torch.cuda.LongTensor)
 			logits = euclidean_distance(model(data_query), protos)   #two-dimensional Tensor (number of queries times training way) with each element being distance, the arangement of queries see data
 			
 			loss = F.cross_entropy(logits, label)   #finally that makes sense. thanks god!
@@ -220,7 +222,8 @@ if __name__ == '__main__':
 
 			#get the gradients for validation and testing
 			for j, val_batch in enumerate(validation_dataloader):
-				val_batch = complement(val_batch, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
+				val_data, _ = [_.cuda() for _ in val_batch]
+				val_batch = complement(val_data, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
 
 				data, _ = [_.cuda() for _ in val_batch]
 				p = args.shot + args.way
@@ -239,7 +242,8 @@ if __name__ == '__main__':
 				val_memory.append(j, val_grads, tr_grads)
 
 			for j, t_batch in enumerate(testing_dataloader):
-				t_batch = complement(t_batch, training_dataset, model, args, 'test')
+				t_data, _ = [_.cuda() for _ in t_batch]
+				t_batch = complement(t_data, training_dataset, model, args, 'test')
 
 				data, _ = [_.cuda() for _ in t_batch]
 				p = args.shot * args.way
