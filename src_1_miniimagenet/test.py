@@ -23,17 +23,19 @@ if __name__ == '__main__':
 	parser.add_argument(
 		'-t_b', '--testing_batch', type=int,
 		help='number of batchs in testing',
-		default=2000)
+		default=50)
 	parser.add_argument(
 		'-w', '--way', type=int,
-		help='number of ways for meta-tasks')
+		help='number of ways for meta-tasks',
+		default=5)
 	parser.add_argument(
 		'-s', '--shot', type=int,
 		help='number of shots for meta-tasks',
 		default=1)
 	parser.add_argument(
 		'-t_q', '--testing_query', type=int,
-		help='number of query samples for meta-tasks in testing')
+		help='number of query samples for meta-tasks in testing',
+		default=30)
 	parser.add_argument(
 		'-d', '--device',
 		help='device information',

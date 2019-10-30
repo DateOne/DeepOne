@@ -153,8 +153,8 @@ def get_model(model, memory, batch_indicator):
 	'''
 	give memory change the model for every validation or testing batch
 	'''
-	to_buy = memory.to_buy[batch_indicator]
-	to_return = memory.to_return[batch_indicator]
+	to_buy = memory.to_buy[str(batch_indicator)]
+	to_return = memory.to_return[str(batch_indicator)]
 
 	for i, f in enumerate(model.parameters()):
 		for j in range(100):   #100 is a hyper-parameter
@@ -207,14 +207,14 @@ class Memory():
 
 		rel = relation(grad, grad_tr)
 
-		if len(self.to_buy[str(batch_indicator)]) < 100:
+		if len(self.to_buy[str(batch_indicator)]) < 10:
 			self.to_buy[str(batch_indicator)].append([grad, rel])
-		else if rel > max([i[1] for i in self.to_buy[str(batch_indicator)]]):
+		elif rel > max([i[1] for i in self.to_buy[str(batch_indicator)]]):
 			self.to_buy[str(batch_indicator)].pop(np.argmin(np.array([i[1] for i in self.to_buy[str(batch_indicator)]])))
 			self.to_buy[str(batch_indicator)].append([grad, rel])
 
-		if len(self.to_return[str(batch_indicator)]) < 100:
+		if len(self.to_return[str(batch_indicator)]) < 10:
 			self.to_return[str(batch_indicator)].append([grad, rel])
-		else if rel < min([i[1] for i in self.to_return[str(batch_indicator)]]):
+		elif rel < min([i[1] for i in self.to_return[str(batch_indicator)]]):
 			self.to_return[str(batch_indicator)].pop(np.argmax(np.array([i[1] for i in self.to_return[str(batch_indicator)]])))
 			self.to_return[str(batch_indicator)].append([grad, rel])

@@ -53,11 +53,11 @@ if __name__ == '__main__':
 	parser.add_argument(
 		'-val_b', '--validation_batch', type=int,
 		help='number of validation batches',
-		default=400)
+		default=50)
 	parser.add_argument(
 		'-t_b', '--testing_batch', type=int,
 		help='number of batchs in testing',
-		default=2000)
+		default=50)
 	parser.add_argument(
 		'-lr', '--learning_rate', type=int,
 		help='learning rate',
@@ -221,45 +221,51 @@ if __name__ == '__main__':
 			tr_params = list(model.parameters())
 			tr_grads = [tr_params[x].grad for x in range(len(tr_params))]   #are you sure this is the best way to do this?
 
-			#get the gradients for validation and testing
-			for j, val_batch in enumerate(validation_dataloader):
-				val_data, _ = [_.cuda() for _ in val_batch]
-				val_batch = complement(val_data, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
 
-				data, _ = [_.cuda() for _ in val_batch]
-				p = args.shot * args.way
-				data_shot, data_query = data[:p], data[p:]
+			if  i % 5 == 0:
+				#get the gradients for validation and testing
+				for j, val_batch in enumerate(validation_dataloader):
+					val_data, _ = [_.cuda() for _ in val_batch]
+					val_batch = complement(val_data, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
 
-				protos = model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
+					data, _ = [_.cuda() for _ in val_batch]
+					p = args.shot * args.way
+					data_shot, data_query = data[:p], data[p:]
+
+					protos = model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
+					
+					label = torch.arange(args.way).repeat(args.query).type(torch.cuda.LongTensor)
+					logits = euclidean_distance(model(data_query), protos)
+					loss = F.cross_entropy(logits, label)
+					loss.backward()
 				
-				label = torch.arange(args.way).repeat(args.query).type(torch.cuda.LongTensor)
-				logits = euclidean_distance(model(data_query), protos)
-				loss = F.cross_entropy(logits, label)
-				loss.backward()
+					val_params = list(model.parameters())
+					val_grads = [val_params[x].grad for x in range(len(val_params))]   #is there better way?
+	
+					val_memory.append(j, val_grads, tr_grads)
+					
+					print('val of 50')
+
+				for j, t_batch in enumerate(testing_dataloader):
+					t_data, _ = [_.cuda() for _ in t_batch]
+					t_batch = complement(t_data, training_dataset, model, args, 'test')
+	
+					data, _ = [_.cuda() for _ in t_batch]
+					p = args.shot * args.way
+					data_shot, data_query = data[:p], data[p:]
+					
+					protos = model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
+					label = torch.arange(args.way).repeat(args.testing_query).type(torch.cuda.LongTensor)
+					logits = euclidean_distance(model(data_query), protos)
+					loss = F.cross_entropy(logits, label)
+					loss.backward()
 				
-				val_params = list(model.parameters())
-				val_grads = [val_params[x].grad for x in range(len(val_params))]   #is there better way?
+					t_params = list(model.parameters())
+					t_grads = [t_params[x].grad for x in range(len(t_params))]
 
-				val_memory.append(j, val_grads, tr_grads)
+					t_memory[epoch].append(j, t_grads, tr_grads)
 
-			for j, t_batch in enumerate(testing_dataloader):
-				t_data, _ = [_.cuda() for _ in t_batch]
-				t_batch = complement(t_data, training_dataset, model, args, 'test')
-
-				data, _ = [_.cuda() for _ in t_batch]
-				p = args.shot * args.way
-				data_shot, data_query = data[:p], data[p:]
-				
-				protos = model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
-				label = torch.arange(args.way).repeat(args.testing_query).type(torch.cuda.LongTensor)
-				logits = euclidean_distance(model(data_query), protos)
-				loss = F.cross_entropy(logits, label)
-				loss.backward()
-				
-				t_params = list(model.parameters())
-				t_grads = [t_params[x].grad for x in range(len(t_params))]
-
-				t_memory[epoch].append(j, t_grads, tr_grads)
+					print('t of 50')
 
 			optimizer.step()
 
