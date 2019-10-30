@@ -108,7 +108,8 @@ class MiniImagenetWholeBatchSampler():
 	description: miniimagenet whole batch sampler for complement function
 	return the whole dataset in the form of (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
 	'''
-	def __init__(self, labels):
+	def __init__(self, labels, num_batches):
+		self.num_batches = num_batches   #64
 		labels = np.array(labels)
 
 		self.class_class = []
@@ -121,12 +122,13 @@ class MiniImagenetWholeBatchSampler():
 		self.num_samples = len(self.class_class[0])
 
 	def __iter__(self):
-		for b in range(1):
+		for b in range(self.num_batches):
 			batch = torch.stack(self.class_class).t().reshape(-1)
+			batch = batch[b * 600, (b + 1) * 600]
 			yield batch
 
 	def __len__(self):
-		return 1
+		return self.num_batches
 
 #fake sampler
 class FakeBatchSampler():

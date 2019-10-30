@@ -78,18 +78,22 @@ def complement(batch_data, tr_dataset, model, opt, mode):
 	batch_protos = model(batch_data).reshape(opt.shot + num_queries, opt.way, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
 
 	training_dataset = tr_dataset
-	training_whole_sampler = MiniImagenetWholeBatchSampler(training_dataset.labels)
+	training_whole_sampler = MiniImagenetWholeBatchSampler(training_dataset.labels, 64)   #64 is the number of classes in training set
 	training_dataloader = DataLoader(
 		dataset=training_dataset,
 		batch_sampler=training_whole_sampler,
 		num_workers=8,
 		pin_memory=True)
 
-	for i, whole_tr_batch in enumerate(training_dataloader):
-		whole_tr_data, _ = [_.cuda() for _ in whole_tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+	tr_protos = list()
 
-	tr_protos = model(whole_tr_data).reshape(training_whole_sampler.num_samples, training_whole_sampler.num_classes, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
-	
+	for i, tr_batch in enumerate(training_dataloader):
+		tr_data, _ = [_.cuda() for _ in whole_tr_batch]   #whole training data will be like (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+		tr_proto = model(tr_data).reshape(training_whole_sampler.num_samples, -1).mean(dim=0)   #one-dimensional list of length of way with each element being the class proto
+		tr_protos.append(tr_proto)
+
+	tr_protos = torch.Tensor(tr_protos)
+
 	batch_protos = batch_protos.unsqueeze(1).expand(opt.way, training_whole_sampler.num_classes, -1)
 	tr_protos = tr_protos.expand(opt.way, training_whole_sampler.num_classes, -1)
 	res = ((batch_protos - tr_protos) ** 2).sum(2)
