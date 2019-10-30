@@ -23,7 +23,7 @@ class ProtoNet(nn.Module):
 	protonet architecture
 	'''
 	def __init__(self, x_dim=3, hid_dim=64, z_dim=64):
-		super(ProtoNet, self).__self__()
+		super(ProtoNet, self).__init__()
 		self.encoder = nn.Sequential(
 			conv_block(x_dim, hid_dim),
 			conv_block(hid_dim, hid_dim),

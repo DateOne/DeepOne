@@ -26,3 +26,10 @@ for t_batches:
 
 advanced thoughts:
 you could also alter models in training, so that (at least) your log of training losses and accs means something.
+
+
+three problems not solved:
+
+relationship
+get model
+non-random sampler

@@ -70,6 +70,8 @@ class MiniImagenetBatchSampler():   #every batch should be the same!!!
 		description: randomly choose some classes and randomly choose some samples from these classes
 	'''
 	def __init__(self, labels, num_batches, num_classes, num_samples):
+		torch.manual_seed(111)
+
 		self.num_batches = num_batches
 		self.num_classes = num_classes
 		self.num_samples = num_samples
@@ -86,11 +88,14 @@ class MiniImagenetBatchSampler():   #every batch should be the same!!!
 		for b in range(self.num_batches):
 			batch = []
 			classes = torch.randperm(len(self.class_class))[:self.num_classes]
+			
 			for c in classes:
 				the_class = self.class_class[c]
 				samples_in_class = torch.randperm(len(the_class))[:self.num_samples]
 				batch.append(the_class[samples_in_class])
+			
 			batch = torch.stack(batch).t().reshape(-1)   #it would be like: (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
+			
 			yield batch
 
 	def __len__(self):
@@ -99,12 +104,13 @@ class MiniImagenetBatchSampler():   #every batch should be the same!!!
 #sampler for complement function
 class MiniImagenetWholeBatchSampler():
 	'''
-	miniimagenet batch sampler for complement function
-		methods: __init__, __iter__, __len__
-		description: choose all classes and all samples
+	methods: __init__, __iter__, __len__
+	description: miniimagenet whole batch sampler for complement function
+	return the whole dataset in the form of (class1, sample1), (class2, sample1), ... (classn, sample1), (class1, sample2), ... (classn, samplen)
 	'''
 	def __init__(self, labels):
 		labels = np.array(labels)
+
 		self.class_class = []
 		for i in range(max(labels) + 1):
 			class_i = np.argwhere(labels == i).reshape(-1)
@@ -115,8 +121,43 @@ class MiniImagenetWholeBatchSampler():
 		self.num_samples = len(class_class[0])
 
 	def __iter__(self):
-		batch = torch.stack(batch).t().reshape(-1)
-		yield batch
+		for b in 1:
+			batch = torch.stack(self.class_class).t().reshape(-1)
+			yield batch
+
+	def __len__(self):
+		return 1
+
+#fake sampler
+class FakeBatchSampler():
+	'''
+	methods: __init__, __iter__, __len__
+	description: ok, I know this sounds stupid and maybe there are ways to handle that problem
+	given class indics and sample batch 
+	'''
+	def __init__(self, labels, class_idcs, num_samples):
+		self.class_idcs = class_idcs
+		self.num_samples = num_samples
+
+		labels = np.array(labels)
+
+		for i in range(max(labels) + 1):
+			class_i = np.argwhere(labels == i).reshape(-1)
+			class_i = torch.from_numpy(class_i)
+			self.class_class.append(class_i)
+
+	def __iter__(self):
+		for b in 1:
+			batch = []
+
+			classes = self.class_class[self.class_idcs]
+
+			for c in classes:
+				samples_in_class = torch.randperm(len(c))[:self.num_samples]
+				batch.append(c[samples_in_class])
+			batch = torch.stack(batch).t().reshape(-1)
+
+			yield batch
 
 	def __len__(self):
 		return 1

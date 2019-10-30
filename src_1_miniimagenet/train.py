@@ -95,6 +95,10 @@ if __name__ == '__main__':
 		'-sv_r', '--save_root',
 		help='save root information (not the dataset root)',
 		default='save')
+	parser.add_argument(
+		'-sd', '--manual_seed',
+		help='manual seed to guarantee each batch in validation sampler and testing sampler will be same',
+		default=111)
 	
 	args = parser.parse_args()
 
@@ -144,7 +148,7 @@ if __name__ == '__main__':
 		
 		return dataloader
 
-	def save_model(name, model):
+	def save_model(name):   #is there some problems about save_model? cause that model thing is really annoying!
 		torch.save(model.state_dict(), os.path.join(args.save_root, name + '.pth'))
 
 	set_device(args.device)
@@ -175,6 +179,8 @@ if __name__ == '__main__':
 	since = time.time()
 
 	t_memory = [Memory() for i in range(args.epoch)]   #testing memory to store gradients
+
+	best_epoch = 0
 
 	for epoch in range(args.epoch):
 		lr.scheduler.step()
@@ -210,11 +216,11 @@ if __name__ == '__main__':
 			loss.backward()
 
 			tr_params = list(model.parameters())
-			tr_grads = [tr_params[x].grad for x in len(tr_params)]   #are you sure this is the best way to do this?
+			tr_grads = [tr_params[x].grad for x in range(len(tr_params))]   #are you sure this is the best way to do this?
 
 			#get the gradients for validation and testing
 			for j, val_batch in enumerate(validation_dataloader):
-				val_batch = complement(val_batch, training_dataset, model, args)   #I will do that later!!!!!!!
+				val_batch = complement(val_batch, training_dataset, model, args, 'val')   #this model won't be the same everytime right?
 
 				data, _ = [_.cuda() for _ in val_batch]
 				p = args.shot + args.way
@@ -228,14 +234,14 @@ if __name__ == '__main__':
 				loss.backward()
 				
 				val_params = list(model.parameters())
-				val_grads = [params[x].grad for x in len(params)]
+				val_grads = [params[x].grad for x in range(len(params))]   #is there better way?
 
 				val_memory.append(j, val_grads, tr_grads)
 
-			for j, t_batch in enumerate(testing_dataloader, 1):
-				t_batch = complement(t_batch, training_dataset, model, args)
+			for j, t_batch in enumerate(testing_dataloader):
+				t_batch = complement(t_batch, training_dataset, model, args, 'test')
 
-				data, _ = [_.cuda() for _ in batch]
+				data, _ = [_.cuda() for _ in t_batch]
 				p = args.shot * args.way
 				data_shot, data_query = data[:p], data[p:]
 				
@@ -246,7 +252,7 @@ if __name__ == '__main__':
 				loss.backward()
 				
 				t_params = list(model.parameters())
-				t_grads = [params[x].grad for x in len(params)]
+				t_grads = [params[x].grad for x in range(len(params))]
 
 				t_memory[epoch].append(j, t_grads, tr_grads)
 
@@ -260,13 +266,15 @@ if __name__ == '__main__':
 		validation_loss = Avenger()
 		validation_acc = Avenger()
 
+		validation_dataloader = init_dataloader('val')
+
 		for i, batch in enumerate(validation_dataloader):
 			data, _ = [_.cuda() for _ in batch]
 			p = args.shot * args.way
 			data_shot, data_query = data[:p], data[p:]
 
 			val_model = model
-			val_model = get_model(val_model, val_memory)
+			val_model = get_model(val_model, val_memory, i)
 
 			protos = val_model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
 			label = torch.arange(args.way).repeat(args.query).type(torch.cuda.LongTensor)
@@ -282,11 +290,12 @@ if __name__ == '__main__':
 		validation_loss = validation_loss.item()
 		validation_acc = validation_acc.item()
 
-		print('=== epoch {}, val, loss={:.4f} acc={:.4f} ===\n\n'.format(epoch, validation_loss, validation_acc))
+		print('=== epoch {}, val, loss={:.4f} acc={:.4f} ==='.format(epoch, validation_loss, validation_acc))
 
 		if validation_acc > tr_log['best_acc']:
 			tr_log['best_acc'] = validation_acc
 			save_model('best')
+			best_epoch = epoch
 
 		tr_log['training_loss'].append(training_loss)
 		tr_log['training_acc'].append(training_acc)
@@ -302,4 +311,6 @@ if __name__ == '__main__':
 
 		time_elapsed = time.time() - since
 
-		print('\n\n===========================\ntraining complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+		print('=== training complete in {:.0f}m {:.0f}s ==='.format(time_elapsed // 60, time_elapsed % 60))
+
+	t_memory = t_memory[best_epoch]

@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from utils import pprint, set_device, Avenger
 from utils import euclidean_distance, get_model
-from dataset_and_sampler import MiniImagenet, FSLBatchSampler
+from dataset_and_sampler import MiniImagenet, MiniImagenetBatchSampler
 from model import ProtoNet
 from train import t_memory   #is that right?
 
@@ -45,11 +45,11 @@ if __name__ == '__main__':
 	set_device(args.device)
 
 	dataset = MiniImagenet('test')
-	sampler = FSLBatchSampler(
+	sampler = MiniImagenetBatchSampler(
 		dataset.labels,
 		num_batches=args.iterations,
 		num_classes=args.way,
-		num_samples=args.shot + args.query)
+		num_samples=args.shot + args.testing_query)
 	dataloader = DataLoader(
 		dataset,
 		batch_sampler=sampler,
@@ -63,13 +63,13 @@ if __name__ == '__main__':
 
 	test_acc = Avenger()
 
-	for i, t_batch in enumerate(dataloader, 1):
+	for i, t_batch in enumerate(dataloader):
 		data, _ = [_.cuda() for _ in batch]
 		p = args.way * args.shot
 		data_shot, data_query = data[:p], data[p:]
 
 		t_model = model
-		t_model = get_model(t_model, t_memory)
+		t_model = get_model(t_model, t_memory, i)
 
 		protos = t_model(data_shot).reshape(args.shot, args.way, -1).mean(dim=0)
 		label = torch.arange(args.way).repeat(args.testing_query).type(torch.cuda.LongTensor)
